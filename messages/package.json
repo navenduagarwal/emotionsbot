@@ -6,6 +6,7 @@
   "dependencies": {
     "botbuilder": "^3.7.0",
     "botbuilder-azure": "3.0.2",
+    "express": "^4.15.2",
     "restify": "^4.1.1"
   },
   "scripts": {
