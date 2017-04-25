@@ -1,0 +1,206 @@
+
+<!doctype html>
+<html>
+<head>
+	<script src="https://www.gstatic.com/firebasejs/3.7.4/firebase.js"></script>
+	<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+	<script src="/static/js/desktop-notify-min.js"></script>
+	<script src="/static/js/config.js"></script>
+	<link rel="manifest" href="/static/manifest.json">
+	<style>
+		body {
+			padding: 50px;
+			font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+			background-image: url(/static/images/bg.jpg);
+			background-size: cover;
+		}
+		a {
+			color: #00B7FF;
+		}
+		.gem-wrapper {
+			position: relative;
+		}
+		.gem {
+			display: block;
+			position: absolute;
+			top: 2rem;
+		}
+		#video {
+			display: block;
+			margin-top: 4em;
+			margin-bottom: 4em;
+		}
+	</style>
+
+	<title>Soulgem Monitor</title>
+</head>
+
+<body>
+	<div id="wrapper"> 
+		<button class="js-button">BUTTON</button>
+		<button id="capture">START</button>
+		<button id="stop">STOP</button>
+	</div>
+	<div class="gem-wrapper">
+		<img src="images/gem.png" width="150" height="auto" class="gem"/>
+		<video autoplay width="640" height="480" id="video"></video>
+	</div>
+	<canvas style="display:none;" width="640" height="480" id="snap"></canvas>
+	<svg id="svgchart"></svg>
+
+	<script type="text/javascript">
+	
+			firebase.initializeApp(config);
+			var ref = firebase.database().ref('faces');
+			
+
+			var video = document.getElementById('video');
+			var canvas = document.getElementById('snap');
+			var ctx = canvas.getContext('2d');
+			ctx.font = "30px Arial";
+			ctx.fillText("Hello World",10,50);	
+			var localMediaStream = null;
+			var hasGetUserMedia = function() {
+				return !!(navigator.getUserMedia || navigator.webkitGetUserMedia ||
+					navigator.mozGetUserMedia || navigator.msGetUserMedia);
+			}
+			var onFailSoHard = function(e) {
+				console.log('error!', e);
+			};
+
+			console.log('started navendu');
+
+			var browserId = localStorage.getItem('browserId');
+			if(!browserId){
+				randText = getRandomText();
+				localStorage.setItem('browserId', randText);
+			}
+			
+// 			alert(localStorage.getItem('browserId'));
+// 			var emotionsRef = ref.child(localStorage.getItem('browserId'));
+			
+			var snapshot = function() {				
+				
+				if (localMediaStream) {
+					ctx.drawImage(video, 0, 0);
+					var dataUri = canvas.toDataURL('image/jpeg');
+					$.ajax({
+						url: "http://localhost:3000/submit",
+						type: 'POST',
+						data: JSON.stringify({
+							dataUri: dataUri,
+							browserId: browserId
+						}),
+						contentType: 'application/json'
+					})
+				}
+			}
+								
+			
+			var status = 30;
+			var changeColor = function (status) {
+				var elem = $('.gem');
+				var percent;
+				if ( status < 10) {
+					percent = '0%';
+				}else if ( status < 20) {
+					percent = '25%';
+				}else if ( status < 40) {
+					percent = '45%';
+				}else if ( status < 60) {
+					percent = '60%';
+				}else if ( status < 80) {
+					percent = '75%';
+				}else if ( status < 90) {
+					percent = '100%';
+				}else {
+					percent = '120%';
+				}
+				var style = {
+					'-webkit-filter': 'brightness('+percent+')',
+					'transition': 'all .3s',
+				}
+				elem.css(style);
+			}
+
+			console.log(browserId);
+			var emotionsRef = ref.child(browserId);
+			console.log(emotionsRef);
+			emotionsRef.on("value",function(snapshot){
+				console.log(snapshot.val());
+
+				if (snapshot.val().happiness === 0 ) {
+					status = Math.max(status - 40, 0);  
+				}else{
+					status = Math.min(status + 20, 120)
+				}
+				console.log("status" + status);
+				changeColor(status);
+				pushNotification(status);
+			});
+
+			window.URL = window.URL || window.webkitURL;
+			navigator.getUserMedia  = navigator.getUserMedia || navigator.webkitGetUserMedia ||
+			navigator.mozGetUserMedia || navigator.msGetUserMedia;
+			navigator.getUserMedia({video: true}, function(stream) {
+				video.src = window.URL.createObjectURL(stream);
+				localMediaStream = stream;
+			}, onFailSoHard);
+			var timer;
+			$("#capture").click(function() {
+				timer = setInterval(snapshot, 1000);
+			});
+			$("#stop").click(function() {
+				clearInterval(timer);
+				localMediaStream.stop();
+			});
+			$(function() {
+				notify.requestPermission()
+			});
+			var pushNotification = function(status) {
+				notify.config({
+					autoClose: 4000 
+				});
+				var text, msg, img;
+				if (status <= 80 && status > 0) {
+					text = 'Dark lord is here';
+					body = 'my my';
+					img  = 'images/fear.png';
+					notification(text, body, img);
+				}
+				if (status == 0) {
+					text = 'Who needs testing';
+					body = 'it is all zero';
+					img  = 'images/sad.png';
+					notification(text, body, img);
+				}
+				if (status == 120) {
+					text = 'I am so happy';
+					body = 'all positive';
+					img  = 'images/joy.png';
+					notification(text, body, img);
+				}
+			}
+			var notification = function(text, body, img){
+				notify.createNotification(text, {
+					body: body,
+					icon: img
+				});
+			}
+			
+			function getRandomText(){
+// 				var randomText = (Math.random() + 1).toString(36).substring(2, 12);
+// 				return(randomText);
+				console.log('dummy check');
+				 var text = "";
+				    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+				    for( var i=0; i < 25; i++ )
+				        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+				    return text;
+			}
+		</script>
+
+	</body>
+	</html>
