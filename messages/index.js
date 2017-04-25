@@ -3,7 +3,7 @@ console.log("Application starting to listen for images to find faces....");
 
 
 var express = require('express');
-var cors = require('cors');
+// var cors = require('cors');
 var serviceAccount = require('./firebase-privatekey.json');
 var fs = require('fs');
 var firebase = require('firebase-admin');
@@ -26,7 +26,7 @@ var vision = gcloud.vision();
 var bodyParser = require('body-parser');
 var app = express();
 
-app.use(cors());
+// app.use(cors());
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ limit:'50mb',extended: true }));
 
