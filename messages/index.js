@@ -1,5 +1,5 @@
 "use strict";
-console.log("Application starting to listen for images to find faces....");
+console.log("New App starting to listen for images to find faces....");
 
 
 var express = require('express');
